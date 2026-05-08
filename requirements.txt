@@ -1,0 +1,11 @@
+pandas
+numpy
+scikit-learn
+joblib
+xgboost
+torch
+torchvision
+optuna
+fastapi
+uvicorn
+pydantic
