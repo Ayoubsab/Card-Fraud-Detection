@@ -105,6 +105,7 @@ fraud-detection/
 ├── models/                     # saved artifacts (gitignored)
 ├── train.py
 ├── main.py
+|── Transaction.py
 ├── requirements.txt
 └── README.md
 ```
