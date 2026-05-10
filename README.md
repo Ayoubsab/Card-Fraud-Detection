@@ -4,7 +4,7 @@ A fraud detection system combining an **unsupervised PyTorch autoencoder** with 
 
 ---
 
-## Problem framing
+## Problem 
 
 Credit card fraud is a classic **extreme class imbalance** problem. On the Kaggle dataset, only 0.17% of transactions are fraudulent (492 out of 284,807). This means:
 
