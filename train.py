@@ -29,7 +29,7 @@ def load_data(data_path='./data/'):
     return df
 
 
-def train_production_model():
+def train_model():
 
     data = load_data()
     y = data['isFraud']
@@ -53,10 +53,10 @@ def train_production_model():
         ('device_preprocessor', DevicePreprocessor(min_frequency=250)),
         ('general_preprocessor', DataPreprocessor(nan_threshold=0.01)),
         ('autoencoder_bridge', AutoencoderPipeline(
-            AutoencoderFeatureExtractor(epochs=50, batch_size=256, learning_rate=0.0001)
+            AutoencoderFeatureExtractor(epochs=1, batch_size=256, learning_rate=0.0001)
         )),
         ('classifier', xgb.XGBClassifier(
-            n_estimators=700,
+            n_estimators=7,
             max_depth=6,
             learning_rate=0.026,
             min_child_weight=8,
@@ -84,9 +84,8 @@ def train_production_model():
     print(classification_report(y_test, pipeline.predict(X_test)))
 
     # Serialization
-    print("Saving production artifact...")
     joblib.dump(pipeline, './models/fraud_detection_pipeline_v1.joblib')
     print("Model saved as 'fraud_detection_pipeline_v1.joblib'")
 
 if __name__ == "__main__":
-    train_production_model()
+    train_model()

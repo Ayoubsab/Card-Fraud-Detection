@@ -52,7 +52,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         
-        self.cat_cols = X.select_dtypes(include=['object', 'category']).columns
+        self.cat_cols = list(X.select_dtypes(include=['object', 'category']).columns)
         self.flag_cols = [
             col for col in X.columns
             if col not in self.cat_cols and X[col].isna().mean() > self.nan_threshold
@@ -61,6 +61,7 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         for col in X.select_dtypes(include='number').columns:
             self.fill_values[col] = X[col].median()
 
+        # self.n_features_in_ = X.shape[1]
         return self
 
 
@@ -100,42 +101,49 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
 
         # Get the OS and version
         if "id_30" in df.columns:
-            df['OS'] = df['id_30'].str.split(' ', expand=True)[0]
-            df['version_OS'] = df['id_30'].str.split(' ', expand=True)[1]
-            df['OS'] = df['OS'].fillna("missing")
-            df['version_OS'] = df['version_OS'].fillna("missing")
+            split = df['id_30'].str.split(' ', n=1, expand=True).reindex(columns=[0, 1])
+            df['OS'] = split[0].fillna("missing")
+            df['version_OS'] = split[1].fillna("missing")
         
         # Get the browser and version
         if "id_31" in df.columns:
-            df['browser'] = df['id_31'].str.split(' ', expand=True)[0]
-            df['version_browser'] = df['id_31'].str.split(' ', expand=True)[1]
-            df['browser'] = df['browser'].fillna("missing")
-            df['version_browser'] = df['version_browser'].fillna("missing")
+            split = df['id_31'].str.split(' ', expand=True).reindex(columns=[0, 1])
+            df['browser'] = split[0].fillna("missing")
+            df['version_browser'] = split[1].fillna("missing")
 
         # Get the screen width and height
         if "id_33" in df.columns:
-            df['screen_width'] = df['id_33'].str.split('x', expand=True)[0]
-            df['screen_height'] = df['id_33'].str.split('x', expand=True)[1]
-            df['screen_width']  = pd.to_numeric(df['screen_width'],  errors='coerce')
-            df['screen_height'] = pd.to_numeric(df['screen_height'], errors='coerce')
+            split = df['id_33'].str.split('x', expand=True).reindex(columns=[0, 1])
+            df['screen_width']  = split[0].fillna("missing")
+            df['screen_height'] = split[1].fillna("missing")
         
         # Get the value of match_status
-        if "id_34" in df.columns:
-            df['id_34'] = df['id_34'].str.split(':', expand=True)[1]
+        #if "id_34" in df.columns:
+        #    df['id_34'] = df['id_34'].str.split(':', expand=True)[1]
 
+        current_cat_cols = self.cat_cols + [
+            'OS', 'version_OS', 'browser', 'version_browser', 
+            'screen_height', 'screen_width',
+            'P_email_suffix', 'R_email_suffix'
+        ]
+
+        df = df.drop(columns=["TransactionAmt", "id_30", "id_31", "id_33"])
 
         # --- Handle NaN values ---
         # 1- Categorical columns
-        for col in self.cat_cols:
+        for col in current_cat_cols:
             if col in df.columns:
                 if df[col].dtype.name == 'category' and "missing" not in df[col].cat.categories:
                     df[col] = df[col].cat.add_categories("missing")
                 df[col] = df[col].fillna("missing")
 
-        object_cols = df.select_dtypes(include=['object']).columns
+        object_cols = df.select_dtypes(include='object').columns
         for col in object_cols:
+            df[col] = df[col].fillna("missing").astype(str)
             df[col] = df[col].astype('category')
-        
+            if  "missing" not in df[col].cat.categories:
+                df[col].cat.add_categories("missing")
+
         # 2- Numerical columns
         flagged_cols = {}
         for col in self.flag_cols:
@@ -143,7 +151,8 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
                 flagged_cols[f"{col}_is_nan"] = df[col].isna().astype(np.int8)
         
         for col in df.select_dtypes(include='number').columns:
-            df[col] = df[col].fillna(self.fill_values.get(col, 0))
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = df[col].fillna(self.fill_values.get(col, 0.0))
 
         if flagged_cols:
             new_flags_df = pd.DataFrame(flagged_cols, index=df.index)

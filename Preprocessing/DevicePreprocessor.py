@@ -46,6 +46,7 @@ class DevicePreprocessor(BaseEstimator, TransformerMixin):
         
         self.valid_devices = set(counts[counts >= self.min_frequency].index)
         
+        self.n_features_in_ = X.shape[1]
         return self
     
     def transform(self, X):
