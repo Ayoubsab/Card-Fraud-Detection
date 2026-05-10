@@ -56,6 +56,7 @@ FastAPI endpoint       — calibrated probabilities
 - NaN flags added before filling —> preserves "absence" as signal
 - Autoencoder trained exclusively on non-fraud transactions
 - `ae_reconstruction_error` injected as a feature into XGBoost (semi-supervised)
+- Used Optuna (Bayesian optimization) to optimize XGBoost's hyperparameters
 
 ---
 
@@ -64,8 +65,8 @@ FastAPI endpoint       — calibrated probabilities
 | Feature | Source | Signal |
 |---|---|---|
 | `TransactionAmt_log` | TransactionAmt | Normalizes skewed distribution |
-| `TransactionAmt_decimal` | TransactionAmt |
-| `hour_of_day`, `day_of_week` | TransactionDT |
+| `TransactionAmt_decimal` | TransactionAmt | 
+| `hour_of_day`, `day_of_week` | TransactionDT | Time od the day/week | 
 | `email_match` | P/R emaildomain | Mismatch = strong fraud signal |
 | `P_email_suffix`, `R_email_suffix` | P/R emaildomain | Country-level domain signal |
 | `OS`, `browser` | id_30, id_31 | Device fingerprinting |
