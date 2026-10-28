@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environments
+venv/
+.venv/
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Data (download from Kaggle, see README)
+data/*
+!data/.gitkeep
+
+# Model artifacts (produced by training)
+models/*
+!models/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/

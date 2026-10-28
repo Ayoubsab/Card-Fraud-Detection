@@ -1,11 +1,10 @@
-pandas
-numpy
-scikit-learn
-joblib
-xgboost
-torch
-torchvision
-optuna
-fastapi
-uvicorn
-pydantic
+# Exact versions for reproducible installs. Loose ranges live in pyproject.toml.
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+joblib==1.5.3
+xgboost==3.2.0
+torch==2.11.0
+fastapi==0.136.1
+uvicorn==0.46.0
+pydantic==2.13.4

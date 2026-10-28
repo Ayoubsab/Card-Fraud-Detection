@@ -1,16 +1,15 @@
-from typing import List
 from fastapi import FastAPI, HTTPException
-from Transaction import Transaction
+from fraud_detection.api.schemas import Transaction
+from fraud_detection.config import MODEL_PATH
 import joblib
 import pandas as pd
 import numpy as np
 import traceback
-import csv
 app = FastAPI(title="Fraud Detection API")
 
 
 try:
-    model_pipeline = joblib.load('./models/fraud_detection_pipeline_v1.joblib')
+    model_pipeline = joblib.load(MODEL_PATH)
     print("Model pipeline loaded successfully.")
 except Exception as e:
     print(f"Error loading model: {e}")
