@@ -4,6 +4,7 @@ Train the fraud detection pipeline.
     python -m fraud_detection.train                      # full run
     python -m fraud_detection.train --sample-rows 50000  # quick run
     python -m fraud_detection.train --no-autoencoder     # ablation without the AE feature
+    python -m fraud_detection.train --no-uid-features    # ablation without the customer features
 
 Writes to the output directory:
     fraud_detection_pipeline.joblib  fitted pipeline (preprocessing + AE + XGBoost)
@@ -103,7 +104,12 @@ def package_versions(*packages: str) -> dict:
     return versions
 
 
-def train(sample_rows: int | None = None, use_autoencoder: bool = True, output_dir: Path = MODELS_DIR) -> dict:
+def train(
+    sample_rows: int | None = None,
+    use_autoencoder: bool = True,
+    use_uid_features: bool = True,
+    output_dir: Path = MODELS_DIR,
+) -> dict:
     # torch is seeded by the autoencoder itself (random_state), only when it is used
     np.random.seed(RANDOM_STATE)
 
@@ -123,7 +129,9 @@ def train(sample_rows: int | None = None, use_autoencoder: bool = True, output_d
 
     # Calculate scale_pos_weight to handle class imbalance
     imbalance_ratio = float((y_train == 0).sum() / (y_train == 1).sum())
-    pipeline = build_pipeline(scale_pos_weight=imbalance_ratio, use_autoencoder=use_autoencoder)
+    pipeline = build_pipeline(
+        scale_pos_weight=imbalance_ratio, use_autoencoder=use_autoencoder, use_uid_features=use_uid_features
+    )
 
     # Fit the feature steps first so the validation set can be transformed for early stopping.
     # The steps are fitted in place, so `pipeline` ends up fully fitted.
@@ -151,6 +159,7 @@ def train(sample_rows: int | None = None, use_autoencoder: bool = True, output_d
         "git_commit": git_commit(),
         "threshold": threshold,
         "use_autoencoder": use_autoencoder,
+        "use_uid_features": use_uid_features,
         "sample_rows": sample_rows,
         "best_iteration": int(classifier.best_iteration),
         "scale_pos_weight": imbalance_ratio,
@@ -182,12 +191,19 @@ def main():
                         help="Use only the first N transactions (quick runs).")
     parser.add_argument("--no-autoencoder", action="store_true",
                         help="Train without the autoencoder feature (ablation).")
+    parser.add_argument("--no-uid-features", action="store_true",
+                        help="Train without the customer (uid) features (ablation).")
     parser.add_argument("--output-dir", type=Path, default=MODELS_DIR,
                         help="Where to write the model, metrics and metadata.")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    train(sample_rows=args.sample_rows, use_autoencoder=not args.no_autoencoder, output_dir=args.output_dir)
+    train(
+        sample_rows=args.sample_rows,
+        use_autoencoder=not args.no_autoencoder,
+        use_uid_features=not args.no_uid_features,
+        output_dir=args.output_dir,
+    )
 
 
 if __name__ == "__main__":

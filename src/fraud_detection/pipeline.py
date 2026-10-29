@@ -1,3 +1,4 @@
+import torch
 import xgboost as xgb
 from sklearn.pipeline import Pipeline
 
@@ -5,11 +6,18 @@ from fraud_detection.autoencoder.bridge import AutoencoderPipeline
 from fraud_detection.config import RANDOM_STATE
 from fraud_detection.features.device import DevicePreprocessor
 from fraud_detection.features.preprocessor import DataPreprocessor
+from fraud_detection.features.uid import UidAggregator
 
 
-def build_pipeline(scale_pos_weight: float = 1.0, use_autoencoder: bool = True) -> Pipeline:
-    """Device cleaning -> feature engineering -> autoencoder anomaly score -> XGBoost."""
-    steps = [
+def build_pipeline(
+    scale_pos_weight: float = 1.0, use_autoencoder: bool = True, use_uid_features: bool = True
+) -> Pipeline:
+    """Customer features -> device cleaning -> feature engineering -> autoencoder anomaly score -> XGBoost."""
+    steps = []
+    if use_uid_features:
+        # First, it needs raw columns (DeviceInfo) that the next steps drop
+        steps.append(('uid_aggregator', UidAggregator()))
+    steps += [
         ('device_preprocessor', DevicePreprocessor(min_frequency=250)),
         ('general_preprocessor', DataPreprocessor(nan_threshold=0.01)),
     ]
