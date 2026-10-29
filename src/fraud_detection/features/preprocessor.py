@@ -36,7 +36,9 @@ class DataPreprocessor(BaseEstimator, TransformerMixin):
         for col in self.raw_cat_cols_:
             df[col] = df[col].astype(object).replace("", np.nan)
 
-        return df
+        # The column-by-column updates above leave the frame fragmented in memory,
+        # copy() consolidates it before feature engineering adds new columns
+        return df.copy()
 
     def _engineer_features(self, df):
 

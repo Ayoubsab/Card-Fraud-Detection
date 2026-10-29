@@ -1,6 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 class Transaction(BaseModel):
+    model_config = ConfigDict (
+        extra='forbid'
+    )
+
     TransactionID: int 
     TransactionDT: int 
     TransactionAmt: float 
@@ -434,3 +438,17 @@ class Transaction(BaseModel):
     id_38: Optional[str] = None
     DeviceType: Optional[str] = None
     DeviceInfo: Optional[str] = None
+
+
+class PredictionResponse(BaseModel):
+    fraud_probability: float
+    is_fraud: bool
+    threshold: float
+    model_version: Optional[str] = None
+
+class HealthResponse(BaseModel):
+    status: str
+    model_loaded: bool
+    model_version: Optional[str] = None
+    trained_at: Optional[str] = None
+

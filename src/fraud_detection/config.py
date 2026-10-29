@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.getenv("FRAUD_DATA_DIR", PROJECT_ROOT / "data"))
 MODELS_DIR = Path(os.getenv("FRAUD_MODELS_DIR", PROJECT_ROOT / "models"))
 MODEL_PATH = Path(os.getenv("FRAUD_MODEL_PATH", MODELS_DIR / "fraud_detection_pipeline.joblib"))
-
+METADATA_PATH = MODEL_PATH.with_name("metadata.json")
 TARGET = "isFraud"
 ID_COLUMN = "TransactionID"
 

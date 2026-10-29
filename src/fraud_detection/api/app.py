@@ -1,51 +1,83 @@
-from fastapi import FastAPI, HTTPException
-from fraud_detection.api.schemas import Transaction
-from fraud_detection.config import MODEL_PATH
 import joblib
 import pandas as pd
-import numpy as np
-import traceback
-app = FastAPI(title="Fraud Detection API")
+import json
+import logging
+
+from fastapi import FastAPI, HTTPException, Request
+from contextlib import asynccontextmanager
+
+from fraud_detection.api.schemas import Transaction, HealthResponse, PredictionResponse
+from fraud_detection.config import MODEL_PATH, METADATA_PATH
 
 
-try:
-    model_pipeline = joblib.load(MODEL_PATH)
-    print("Model pipeline loaded successfully.")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    model_pipeline = None
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        app.state.model_pipeline = joblib.load(MODEL_PATH)
+        logger.info("Model pipeline loaded successfully.")
+    except Exception:
+        logger.exception("Error loading model.")
+        app.state.model_pipeline = None
+
+    try:
+        with open(METADATA_PATH) as f:
+            app.state.metadata = json.load(f)
+            logger.info("Metadata loaded successfully.")
+    except Exception:
+        logger.exception("Error loading metadata.")
+        app.state.metadata = {}
+
+    yield
+
+app = FastAPI(title="Fraud Detection API", lifespan=lifespan)
 
 
 @app.get("/")
-def health_check():
-    return {"status": "online", "model_loaded": model_pipeline is not None}
+@app.get("/health")
+def health_check(request: Request) -> HealthResponse:
+    
+    if request.app.state.model_pipeline is not None:
+        
+        model_loaded = True
+        model_version = request.app.state.metadata.get("git_commit")
+        trained_at = request.app.state.metadata.get("created_at")
+        health_response = HealthResponse(status="online", model_loaded=model_loaded, 
+                                         model_version=model_version, trained_at=trained_at)
+    else:
+        health_response = HealthResponse(status="degraded", model_loaded=False)
+    return health_response
 
 @app.post("/predict")
-async def predict(transaction: Transaction):
-    if model_pipeline is None:
+def predict(request: Request, transaction: Transaction) -> PredictionResponse:
+    if request.app.state.model_pipeline is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
         # Convert input to DataFrame
         input_df = pd.DataFrame([transaction.model_dump()])
         input_df = input_df.drop(columns=['TransactionID'], errors='ignore')
-        input_df = input_df.fillna(value=np.nan)
-        print(input_df.head())
+
         # Pipeline Execution
-        probs = model_pipeline.predict_proba(input_df)[0][1]
-        prediction = probs >= 0.5
+        probs = request.app.state.model_pipeline.predict_proba(input_df)[0][1]
+        prediction = probs >= request.app.state.metadata.get("threshold", 0.5)
 
         # Return results
-        return {
-            "fraud_probability": round(float(probs), 4),
-            "is_fraud": bool(prediction),
-            "reconstruction_error": float(input_df.get('ae_reconstruction_error', [0])[0]) if 'ae_reconstruction_error' in input_df else "N/A"
-        }
+        return PredictionResponse(
+            fraud_probability= round(float(probs), 4),
+            is_fraud= bool(prediction),
+            threshold=request.app.state.metadata.get("threshold", 0.5),
+            model_version=request.app.state.metadata.get("git_commit")
+        )
+        
 
-    except Exception as e:
+    except Exception:
+        logger.exception("Prediction failed.")
         raise HTTPException(
             status_code=500, 
-            detail=traceback.format_exc()  # ← full traceback instead of str(e)
+            detail="Prediction failed."
         )
 
 if __name__ == "__main__":
