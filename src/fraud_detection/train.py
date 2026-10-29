@@ -5,6 +5,10 @@ Train the fraud detection pipeline.
     python -m fraud_detection.train --sample-rows 50000  # quick run
     python -m fraud_detection.train --no-autoencoder     # ablation without the AE feature
     python -m fraud_detection.train --no-uid-features    # ablation without the customer features
+    python -m fraud_detection.train --no-refit           # keep the train-only model (no refit on train + val)
+
+Validation picks the number of trees and the threshold, then the final model is refit on
+train + validation and evaluated once on test.
 
 Writes to the output directory:
     fraud_detection_pipeline.joblib  fitted pipeline (preprocessing + AE + XGBoost)
@@ -108,6 +112,7 @@ def train(
     sample_rows: int | None = None,
     use_autoencoder: bool = True,
     use_uid_features: bool = True,
+    refit: bool = True,
     output_dir: Path = MODELS_DIR,
 ) -> dict:
     # torch is seeded by the autoencoder itself (random_state), only when it is used
@@ -147,8 +152,25 @@ def train(
 
     # The threshold is chosen on validation, the test set is only used for the final report
     threshold = best_f1_threshold(y_val, classifier.predict_proba(X_val_t)[:, 1])
+    best_iteration = int(classifier.best_iteration)
     del X_train_t, X_val_t
     gc.collect()
+
+    if refit:
+        # Validation was only needed to pick the number of trees and the threshold. Refit on
+        # train + validation so the final model, and its customer lookup tables, include the
+        # most recent month, as the production model would.
+        X_full, y_full = pd.concat([X_train, X_val]), pd.concat([y_train, y_val])
+        refit_ratio = float((y_full == 0).sum() / (y_full == 1).sum())
+        pipeline = build_pipeline(
+            scale_pos_weight=refit_ratio, use_autoencoder=use_autoencoder, use_uid_features=use_uid_features
+        )
+        pipeline[-1].set_params(n_estimators=best_iteration + 1)
+        logger.info("Refitting on train + validation (%d rows, %d trees)...", len(X_full), best_iteration + 1)
+        pipeline.fit(X_full, y_full)
+        classifier = pipeline[-1]
+        del X_full, y_full
+        gc.collect()
 
     metrics = evaluate(y_test.to_numpy(), pipeline.predict_proba(X_test)[:, 1], threshold)
     logger.info("Test AUPRC=%.4f | ROC-AUC=%.4f | precision=%.3f | recall=%.3f @ threshold=%.3f",
@@ -161,7 +183,8 @@ def train(
         "use_autoencoder": use_autoencoder,
         "use_uid_features": use_uid_features,
         "sample_rows": sample_rows,
-        "best_iteration": int(classifier.best_iteration),
+        "refit_on_train_val": refit,
+        "best_iteration": best_iteration,
         "scale_pos_weight": imbalance_ratio,
         "n_features": int(classifier.n_features_in_),
         "splits": {
@@ -193,6 +216,8 @@ def main():
                         help="Train without the autoencoder feature (ablation).")
     parser.add_argument("--no-uid-features", action="store_true",
                         help="Train without the customer (uid) features (ablation).")
+    parser.add_argument("--no-refit", action="store_true",
+                        help="Keep the model trained on train only instead of refitting on train + validation.")
     parser.add_argument("--output-dir", type=Path, default=MODELS_DIR,
                         help="Where to write the model, metrics and metadata.")
     args = parser.parse_args()
@@ -202,6 +227,7 @@ def main():
         sample_rows=args.sample_rows,
         use_autoencoder=not args.no_autoencoder,
         use_uid_features=not args.no_uid_features,
+        refit=not args.no_refit,
         output_dir=args.output_dir,
     )
 
