@@ -72,7 +72,7 @@ curl -X POST localhost:8000/predict -H "Content-Type: application/json" \
      -d '{"TransactionID": 1, "TransactionDT": 86400, "TransactionAmt": 50.0, "card1": 13926}'
 ```
 ```json
-{"fraud_probability": 0.0475, "is_fraud": false, "threshold": 0.4612, "model_version": "c28dadc"}
+{"fraud_probability": 0.0475, "is_fraud": false, "threshold": 0.4612, "model_version": "687344b"}
 ```
 
 Fields left out are treated as missing. Unknown fields are rejected with a 422, so a typo like `TransactionAmnt` doesn't silently drop the amount. Errors are logged on the server, and clients only get a generic message.
