@@ -111,11 +111,4 @@ src/fraud_detection/
 notebooks/                  EDA and modeling exploration
 ```
 
-## Limitations and next steps
-
-- **Label delay.** The refit uses the last month's labels. In real life chargebacks take weeks to arrive, so a production model would train on slightly older labels.
-- **Threshold after refit.** The threshold is chosen on the train-only model and reused after the refit, whose scores shift slightly. Calibration, or choosing the threshold by a target false-positive rate, would make the operating point more stable.
-- **Customer history is frozen at training time.** A production system would update customer statistics continuously through a feature store. That would also enable velocity features ("transactions in the last hour").
-- **Next:** unit tests and CI, a batch scoring endpoint, a Docker image, and a LightGBM/CatBoost ensemble.
-
 macOS note: torch is pinned below 2.11, whose bundled OpenMP runtime segfaults when xgboost runs in the same process.
