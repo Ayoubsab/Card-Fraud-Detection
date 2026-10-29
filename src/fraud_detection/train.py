@@ -3,7 +3,7 @@ Train the fraud detection pipeline.
 
     python -m fraud_detection.train                      # full run
     python -m fraud_detection.train --sample-rows 50000  # quick run
-    python -m fraud_detection.train --no-autoencoder     # ablation without the AE feature
+    python -m fraud_detection.train --autoencoder        # experiment: add the AE anomaly score
     python -m fraud_detection.train --no-uid-features    # ablation without the customer features
     python -m fraud_detection.train --no-refit           # keep the train-only model (no refit on train + val)
 
@@ -110,7 +110,7 @@ def package_versions(*packages: str) -> dict:
 
 def train(
     sample_rows: int | None = None,
-    use_autoencoder: bool = True,
+    use_autoencoder: bool = False,
     use_uid_features: bool = True,
     refit: bool = True,
     output_dir: Path = MODELS_DIR,
@@ -212,8 +212,8 @@ def main():
     parser = argparse.ArgumentParser(description="Train the fraud detection pipeline.")
     parser.add_argument("--sample-rows", type=int, default=None,
                         help="Use only the first N transactions (quick runs).")
-    parser.add_argument("--no-autoencoder", action="store_true",
-                        help="Train without the autoencoder feature (ablation).")
+    parser.add_argument("--autoencoder", action="store_true",
+                        help="Add the autoencoder anomaly score (experiment, did not improve AUPRC).")
     parser.add_argument("--no-uid-features", action="store_true",
                         help="Train without the customer (uid) features (ablation).")
     parser.add_argument("--no-refit", action="store_true",
@@ -225,7 +225,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     train(
         sample_rows=args.sample_rows,
-        use_autoencoder=not args.no_autoencoder,
+        use_autoencoder=args.autoencoder,
         use_uid_features=not args.no_uid_features,
         refit=not args.no_refit,
         output_dir=args.output_dir,

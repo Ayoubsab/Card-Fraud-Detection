@@ -10,7 +10,7 @@ from fraud_detection.features.uid import UidAggregator
 
 
 def build_pipeline(
-    scale_pos_weight: float = 1.0, use_autoencoder: bool = True, use_uid_features: bool = True
+    scale_pos_weight: float = 1.0, use_autoencoder: bool = False, use_uid_features: bool = True
 ) -> Pipeline:
     """Customer features -> device cleaning -> feature engineering -> autoencoder anomaly score -> XGBoost."""
     steps = []
