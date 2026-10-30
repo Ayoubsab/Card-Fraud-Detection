@@ -21,7 +21,7 @@ import gc
 import json
 import logging
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -29,8 +29,14 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
-    average_precision_score, confusion_matrix, precision_recall_curve,
-    precision_score, recall_score, f1_score, roc_auc_score, roc_curve,
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
 )
 
 from fraud_detection.config import ID_COLUMN, MODEL_PATH, MODELS_DIR, PROJECT_ROOT, RANDOM_STATE, TARGET
@@ -177,7 +183,7 @@ def train(
                 metrics["auprc"], metrics["roc_auc"], metrics["precision"], metrics["recall"], threshold)
 
     metadata = {
-        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "git_commit": git_commit(),
         "threshold": threshold,
         "use_autoencoder": use_autoencoder,

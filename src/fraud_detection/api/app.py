@@ -1,14 +1,13 @@
-import joblib
-import pandas as pd
 import json
 import logging
-
-from fastapi import FastAPI, HTTPException, Request
 from contextlib import asynccontextmanager
 
-from fraud_detection.api.schemas import Transaction, HealthResponse, PredictionResponse
-from fraud_detection.config import MODEL_PATH, METADATA_PATH
+import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request
 
+from fraud_detection.api.schemas import HealthResponse, PredictionResponse, Transaction
+from fraud_detection.config import METADATA_PATH, MODEL_PATH
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -38,13 +37,13 @@ app = FastAPI(title="Fraud Detection API", lifespan=lifespan)
 @app.get("/")
 @app.get("/health")
 def health_check(request: Request) -> HealthResponse:
-    
+
     if request.app.state.model_pipeline is not None:
-        
+
         model_loaded = True
         model_version = request.app.state.metadata.get("git_commit")
         trained_at = request.app.state.metadata.get("created_at")
-        health_response = HealthResponse(status="online", model_loaded=model_loaded, 
+        health_response = HealthResponse(status="online", model_loaded=model_loaded,
                                          model_version=model_version, trained_at=trained_at)
     else:
         health_response = HealthResponse(status="degraded", model_loaded=False)
@@ -71,14 +70,11 @@ def predict(request: Request, transaction: Transaction) -> PredictionResponse:
             threshold=request.app.state.metadata.get("threshold", 0.5),
             model_version=request.app.state.metadata.get("git_commit")
         )
-        
-
     except Exception:
+        # The full error is logged server side, the client only gets a generic message
         logger.exception("Prediction failed.")
-        raise HTTPException(
-            status_code=500, 
-            detail="Prediction failed."
-        )
+        raise HTTPException(status_code=500, detail="Prediction failed.") from None
+
 
 if __name__ == "__main__":
     import uvicorn

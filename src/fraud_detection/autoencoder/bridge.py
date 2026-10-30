@@ -1,10 +1,10 @@
 import numpy as np
-
 from sklearn.base import BaseEstimator, TransformerMixin, clone
-from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import KFold
+from sklearn.utils.validation import check_is_fitted
 
 from fraud_detection.config import RANDOM_STATE
+
 
 class AutoencoderPipeline(BaseEstimator, TransformerMixin):
     def __init__(self, ae_extractor, n_splits=3):
