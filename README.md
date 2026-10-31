@@ -1,4 +1,6 @@
 # Card Fraud Detection
+[![CI](https://github.com/Ayoubsab/Card-Fraud-Detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayoubsab/Card-Fraud-Detection/actions/workflows/ci.yml)
+
 
 End-to-end fraud detection on real e-commerce transactions: feature engineering, an XGBoost model evaluated on a strictly future time period, and a FastAPI service that scores single transactions exactly like the training data.
 
